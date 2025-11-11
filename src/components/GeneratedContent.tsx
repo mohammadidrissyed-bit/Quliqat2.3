@@ -345,33 +345,32 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
         if (!editedPrompt) return;
 
         if (platform === 'gemini') {
-            navigator.clipboard.writeText(editedPrompt).then(() => {
-                setCopiedButton('gemini');
-                const timer = setTimeout(() => setCopiedButton(null), 2500);
-
-                const url = `https://gemini.google.com/app?prompt=${encodeURIComponent(editedPrompt)}`;
-                window.open(url, '_blank', 'noopener,noreferrer');
-                
-                return () => clearTimeout(timer);
-            }).catch(err => {
+            // First, attempt to copy the prompt to the clipboard.
+            navigator.clipboard.writeText(editedPrompt).catch(err => {
                 console.error('Failed to copy prompt for Gemini:', err);
-                // Fallback: still open the URL even if copy fails
-                const url = `https://gemini.google.com/app?prompt=${encodeURIComponent(editedPrompt)}`;
-                window.open(url, '_blank', 'noopener,noreferrer');
+                // Even if copying fails, the main goal is to open the tab.
             });
+
+            // Provide immediate feedback to the user.
+            setCopiedButton('gemini');
+            setTimeout(() => setCopiedButton(null), 2500);
+
+            // Open the Gemini URL in a new tab. This is now synchronous with the user's click,
+            // which prevents it from being blocked by mobile browser pop-up blockers.
+            const url = `https://gemini.google.com/app?prompt=${encodeURIComponent(editedPrompt)}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+
         } else { // platform === 'meta'
             setCopiedButton('meta');
             const timer = setTimeout(() => setCopiedButton(null), 2500);
             
-            // Per user's example, use the official Meta AI bot phone number
-            // and prepend the prompt with the `/imagine` command.
             const metaAiPhoneNumber = '13135550002';
             const promptText = `/imagine ${editedPrompt}`;
             const encodedPrompt = encodeURIComponent(promptText);
             const url = `https://wa.me/${metaAiPhoneNumber}?text=${encodedPrompt}`;
             window.open(url, '_blank', 'noopener,noreferrer');
             
-            // Must return the timeout cleanup function
+            // Cleanup function for the timer
             return () => clearTimeout(timer);
         }
     }, [editedPrompt]);
@@ -395,7 +394,7 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
                             disabled={copiedButton !== null}
                             className="w-full text-center font-semibold py-3 px-4 rounded-lg bg-cyan-400 text-slate-900 hover:bg-cyan-500 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 focus-visible:ring-cyan-500 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            {copiedButton === 'gemini' ? 'Copied & Opening...' : 'Generate with Gemini'}
+                            {copiedButton === 'gemini' ? 'Prompt Copied!' : 'Generate with Gemini'}
                         </button>
                         <div>
                             <button
@@ -403,7 +402,7 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
                                 disabled={copiedButton !== null}
                                 className="w-full text-center font-semibold py-3 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 focus-visible:ring-green-600 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {copiedButton === 'meta' ? 'Copied & Opening...' : 'Visualize with Meta AI'}
+                                {copiedButton === 'meta' ? 'Opening WhatsApp...' : 'Visualize with Meta AI'}
                             </button>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">Opens Meta AI chat in WhatsApp.</p>
                         </div>
