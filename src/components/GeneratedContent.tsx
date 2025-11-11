@@ -345,33 +345,28 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
         if (!editedPrompt) return;
 
         if (platform === 'gemini') {
-            // First, attempt to copy the prompt to the clipboard.
-            navigator.clipboard.writeText(editedPrompt).catch(err => {
-                console.error('Failed to copy prompt for Gemini:', err);
-                // Even if copying fails, the main goal is to open the tab.
-            });
-
-            // Provide immediate feedback to the user.
-            setCopiedButton('gemini');
-            setTimeout(() => setCopiedButton(null), 2500);
-
-            // Open the Gemini URL in a new tab. This is now synchronous with the user's click,
-            // which prevents it from being blocked by mobile browser pop-up blockers.
+            // Open the new tab immediately on click to avoid pop-up blockers.
             const url = `https://gemini.google.com/app?prompt=${encodeURIComponent(editedPrompt)}`;
             window.open(url, '_blank', 'noopener,noreferrer');
 
+            // Then, copy the prompt to the clipboard as a secondary action.
+            navigator.clipboard.writeText(editedPrompt).catch(err => {
+                console.error('Failed to copy prompt for Gemini:', err);
+            });
+
+            // Provide immediate visual feedback to the user.
+            setCopiedButton('gemini');
+            setTimeout(() => setCopiedButton(null), 2500);
+
         } else { // platform === 'meta'
-            setCopiedButton('meta');
-            const timer = setTimeout(() => setCopiedButton(null), 2500);
-            
             const metaAiPhoneNumber = '13135550002';
             const promptText = `/imagine ${editedPrompt}`;
             const encodedPrompt = encodeURIComponent(promptText);
             const url = `https://wa.me/${metaAiPhoneNumber}?text=${encodedPrompt}`;
             window.open(url, '_blank', 'noopener,noreferrer');
             
-            // Cleanup function for the timer
-            return () => clearTimeout(timer);
+            setCopiedButton('meta');
+            setTimeout(() => setCopiedButton(null), 2500);
         }
     }, [editedPrompt]);
     
