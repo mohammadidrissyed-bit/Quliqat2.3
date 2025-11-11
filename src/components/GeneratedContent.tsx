@@ -346,29 +346,48 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
     
     const handleGemini = useCallback(() => {
         if (!editedPrompt) return;
-        
-        // 1. Open the tab immediately to prevent pop-up blockers, using the simpler base URL.
+
+        // Create a temporary textarea element to hold the text to be copied
+        const textArea = document.createElement("textarea");
+        textArea.value = editedPrompt;
+
+        // Make the textarea invisible and append it to the body
+        textArea.style.position = "fixed";
+        textArea.style.top = "-9999px";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+
+        // Select the text and execute the copy command
+        textArea.select();
+        let wasCopied = false;
+        try {
+            wasCopied = document.execCommand('copy');
+        } catch (err) {
+            console.error('Failed to copy text using execCommand:', err);
+        }
+
+        // Clean up by removing the temporary textarea
+        document.body.removeChild(textArea);
+
+        // Now open the new tab
         const url = 'https://gemini.google.com/';
         const newTab = window.open(url, '_blank', 'noopener,noreferrer');
-        
-        // 2. Copy the prompt to the clipboard.
-        navigator.clipboard.writeText(editedPrompt)
-            .then(() => {
-                // 3. Update button text for user feedback.
-                setGeminiButtonText('Prompt Copied!');
-                if (!newTab) {
-                    console.warn('Could not open a new tab. It might be blocked by your browser.');
-                    alert("Couldn't open Gemini automatically, but the prompt has been copied to your clipboard. Please paste it into Gemini.");
-                }
-            })
-            .catch(err => {
-                console.error('Failed to copy prompt:', err);
-                setGeminiButtonText('Copy Failed');
-            })
-            .finally(() => {
-                // 4. Reset button text after a delay.
-                setTimeout(() => setGeminiButtonText('Generate with Gemini'), 2500);
-            });
+
+        // Provide feedback to the user
+        if (wasCopied) {
+            setGeminiButtonText('Prompt Copied!');
+            if (!newTab) {
+                alert("Couldn't open Gemini automatically, but the prompt has been copied to your clipboard. Please paste it into Gemini.");
+            }
+        } else {
+            setGeminiButtonText('Copy Failed');
+        }
+
+        // Reset button text after a short delay
+        setTimeout(() => {
+            setGeminiButtonText('Generate with Gemini');
+        }, 2500);
+
     }, [editedPrompt]);
 
     const handleMeta = useCallback(() => {
