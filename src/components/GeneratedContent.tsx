@@ -333,7 +333,10 @@ export const AnswerCard = ({ title, content, audioState, onGenerateAudio }: { ti
 
 export const VisualizationCard = ({ title, topic, promptState }: { title: string; topic: string; promptState: TopicContent['visualPrompt']; }) => {
     const [editedPrompt, setEditedPrompt] = useState(promptState?.data || '');
-    const [copiedButton, setCopiedButton] = useState<'gemini' | 'meta' | null>(null);
+    const [geminiButtonText, setGeminiButtonText] = useState('Generate with Gemini');
+    const [metaButtonText, setMetaButtonText] = useState('Visualize with Meta AI');
+    
+    const isActionInProgress = geminiButtonText !== 'Generate with Gemini' || metaButtonText !== 'Visualize with Meta AI';
 
     useEffect(() => {
         if (promptState?.data) {
@@ -341,33 +344,45 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
         }
     }, [promptState?.data]);
     
-    const handleCopyAndOpen = useCallback((platform: 'gemini' | 'meta') => {
+    const handleGemini = useCallback(() => {
         if (!editedPrompt) return;
-
-        if (platform === 'gemini') {
-            // Open the new tab immediately on click to avoid pop-up blockers.
-            const url = `https://gemini.google.com/app?prompt=${encodeURIComponent(editedPrompt)}`;
-            window.open(url, '_blank', 'noopener,noreferrer');
-
-            // Then, copy the prompt to the clipboard as a secondary action.
-            navigator.clipboard.writeText(editedPrompt).catch(err => {
-                console.error('Failed to copy prompt for Gemini:', err);
+        
+        // 1. Open the tab immediately to prevent pop-up blockers, using the simpler base URL.
+        const url = 'https://gemini.google.com/';
+        const newTab = window.open(url, '_blank', 'noopener,noreferrer');
+        
+        // 2. Copy the prompt to the clipboard.
+        navigator.clipboard.writeText(editedPrompt)
+            .then(() => {
+                // 3. Update button text for user feedback.
+                setGeminiButtonText('Prompt Copied!');
+                if (!newTab) {
+                    console.warn('Could not open a new tab. It might be blocked by your browser.');
+                    alert("Couldn't open Gemini automatically, but the prompt has been copied to your clipboard. Please paste it into Gemini.");
+                }
+            })
+            .catch(err => {
+                console.error('Failed to copy prompt:', err);
+                setGeminiButtonText('Copy Failed');
+            })
+            .finally(() => {
+                // 4. Reset button text after a delay.
+                setTimeout(() => setGeminiButtonText('Generate with Gemini'), 2500);
             });
+    }, [editedPrompt]);
 
-            // Provide immediate visual feedback to the user.
-            setCopiedButton('gemini');
-            setTimeout(() => setCopiedButton(null), 2500);
-
-        } else { // platform === 'meta'
-            const metaAiPhoneNumber = '13135550002';
-            const promptText = `/imagine ${editedPrompt}`;
-            const encodedPrompt = encodeURIComponent(promptText);
-            const url = `https://wa.me/${metaAiPhoneNumber}?text=${encodedPrompt}`;
-            window.open(url, '_blank', 'noopener,noreferrer');
-            
-            setCopiedButton('meta');
-            setTimeout(() => setCopiedButton(null), 2500);
-        }
+    const handleMeta = useCallback(() => {
+        if (!editedPrompt) return;
+        
+        const metaAiPhoneNumber = '13135550002';
+        const promptText = `/imagine ${editedPrompt}`;
+        const encodedPrompt = encodeURIComponent(promptText);
+        const url = `https://wa.me/${metaAiPhoneNumber}?text=${encodedPrompt}`;
+        
+        window.open(url, '_blank', 'noopener,noreferrer');
+        
+        setMetaButtonText('Opening WhatsApp...');
+        setTimeout(() => setMetaButtonText('Visualize with Meta AI'), 2500);
     }, [editedPrompt]);
     
     return (
@@ -385,19 +400,19 @@ export const VisualizationCard = ({ title, topic, promptState }: { title: string
                     />
                     <div className="flex flex-col gap-3">
                          <button
-                            onClick={() => handleCopyAndOpen('gemini')}
-                            disabled={copiedButton !== null}
+                            onClick={handleGemini}
+                            disabled={isActionInProgress}
                             className="w-full text-center font-semibold py-3 px-4 rounded-lg bg-cyan-400 text-slate-900 hover:bg-cyan-500 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 focus-visible:ring-cyan-500 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            {copiedButton === 'gemini' ? 'Prompt Copied!' : 'Generate with Gemini'}
+                            {geminiButtonText}
                         </button>
                         <div>
                             <button
-                                onClick={() => handleCopyAndOpen('meta')}
-                                disabled={copiedButton !== null}
+                                onClick={handleMeta}
+                                disabled={isActionInProgress}
                                 className="w-full text-center font-semibold py-3 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 focus-visible:ring-green-600 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {copiedButton === 'meta' ? 'Opening WhatsApp...' : 'Visualize with Meta AI'}
+                                {metaButtonText}
                             </button>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">Opens Meta AI chat in WhatsApp.</p>
                         </div>
